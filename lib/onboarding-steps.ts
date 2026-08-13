@@ -179,6 +179,27 @@ export const onboardingSteps: OnboardingStep[] = [
     kind: "single-select",
     options: [{ id: "ready", label: "Alles passt" }],
   },
+  {
+    id: "ai-moment",
+    number: 10,
+    title: "Wir analysieren dein Profil",
+    description: "Das dauert nur einen kurzen Moment.",
+    kind: "single-select",
+  },
+  {
+    id: "result",
+    number: 11,
+    title: "Deine persönlichen Matches",
+    description: "Wir haben passende Jobs für dich gefunden.",
+    kind: "single-select",
+  },
+  {
+    id: "signup",
+    number: 12,
+    title: "Fast geschafft",
+    description: "Sichere deine Matches dauerhaft.",
+    kind: "single-select",
+  },
 ];
 
 export const firstStepId = onboardingSteps[0].id;

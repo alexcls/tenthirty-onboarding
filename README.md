@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TenThirty — Onboarding Prototyp
 
-## Getting Started
+Klickbarer Prototyp eines mobile-first Onboarding-Flows für die KI-Job-Matching-App TenThirty.
+Von der Hero Section bis zur Account-Erstellung, mit simuliertem KI-Matching (kein echtes Backend).
 
-First, run the development server:
+## Starten
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Danach `http://localhost:3000` öffnen. Für die beste Ansicht die Browser-DevTools auf ein mobiles Gerät stellen (ca. 390px Breite) — der Flow ist mobile-first designt.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Ordnerstruktur
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+app/
+  page.tsx                     — Rendert den gesamten Onboarding-Flow (Hero, Fragen, Summary, KI-Screen, Ergebnis, Signup)
+components/
+  OnboardingLayout.tsx          — Äußerer Rahmen: Header, Progress-Bar, scrollbarer Content-Bereich, sticky Footer für CTAs
+  OptionCard.tsx                — Antippbare Antwortkarte für Single-/Multi-Select-Fragen
+  ProgressBar.tsx               — Fortschrittsanzeige oben im Layout
+context/
+  OnboardingContext.tsx         — State-Management (useReducer) für Antworten, aktuellen Schritt, Verlauf
+lib/
+  onboarding-steps.ts           — Zentrale Konfiguration aller Fragen/Screens inkl. Optionen, Branchen-Filterung, Slider-Config
+data/
+  mock-jobs.ts                  — Simulierte Job-Datenbank inkl. Matching-Score-Berechnung basierend auf den Antworten
+types/
+  onboarding.ts                 — Zentrale TypeScript-Typen für Steps, State und Actions
+docs/
+  prompt.md                     — Ursprüngliche Produktspezifikation, mit der dieser Prototyp umgesetzt wurde
+```
 
-## Learn More
+## Wichtigste Komponenten
 
-To learn more about Next.js, take a look at the following resources:
+- **OnboardingLayout** — regelt Header/Progress/Footer-Struktur, damit der primäre CTA-Button auf jedem Screen immer sichtbar bleibt, auch wenn der Inhalt scrollt.
+- **onboarding-steps.ts** — die Fragen sind datengetrieben statt als Einzelseiten hartkodiert. Eine neue Frage oder Branche lässt sich durch Ergänzen der Config hinzufügen, ohne neue Komponenten zu bauen.
+- **mock-jobs.ts** — berechnet einen nachvollziehbaren Match-Score pro Job (Punkte für Rollen-, Senioritäts-, Remote- und Gehaltsübereinstimmung) statt eines rein zufälligen Werts.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Bekannte Einschränkungen
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Kein echtes Backend, kein echtes Auth. Alle Job-Daten und der "KI-Analyse"-Moment sind simuliert. Details dazu in `NOTES.md`.

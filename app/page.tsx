@@ -13,6 +13,7 @@ import {
   heroStepId,
 } from "@/lib/onboarding-steps";
 import type { OnboardingStep } from "@/types/onboarding";
+import { getPersonalizedJobs, getTotalMatches } from "@/data/mock-jobs";
 
 function HeroScreen({ onStart }: { onStart: () => void }) {
   return (
@@ -289,21 +290,15 @@ function OnboardingFlow() {
     visibleSteps.find((step) => step.id === state.currentStepId) ??
     visibleSteps[0];
 
-  if (!currentStep) {
-    return null;
-  }
-
-  const currentIndex = visibleSteps.findIndex(
-    (step) => step.id === currentStep.id,
-  );
-  const stepNumber = currentIndex >= 0 ? currentIndex + 1 : 1;
-  const currentAnswer = state.answers[currentStep.id];
+  // Hooks müssen VOR jedem bedingten return stehen (Rules of Hooks)
+  const currentAnswer = currentStep ? state.answers[currentStep.id] : undefined;
   const remoteAnswer = state.answers.locationRemote;
+
   const stepOptions = useMemo(
-    () => getStepOptions(currentStep.id, state.answers),
-    [currentStep.id, state.answers],
+    () => (currentStep ? getStepOptions(currentStep.id, state.answers) : []),
+    [currentStep, state.answers],
   );
-  const sliderConfig = getStepById(currentStep.id)?.sliderConfig;
+
   const summaryItems = useMemo(
     () =>
       visibleSteps
@@ -316,8 +311,21 @@ function OnboardingFlow() {
     [state.answers, visibleSteps],
   );
 
+  const mockJobs = useMemo(
+    () => getPersonalizedJobs(state.answers),
+    [state.answers],
+  );
+
+  const totalMatches = useMemo(
+    () => getTotalMatches(state.answers),
+    [state.answers],
+  );
+
+  const remainingMatches = Math.max(totalMatches - 1, 0);
+
   useEffect(() => {
     if (
+      !currentStep ||
       currentStep.id === "summary" ||
       currentStep.kind !== "single-select" ||
       typeof currentAnswer !== "string" ||
@@ -334,7 +342,31 @@ function OnboardingFlow() {
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [advance, currentAnswer, currentStep.id, currentStep.kind]);
+  }, [advance, currentAnswer, currentStep]);
+
+  useEffect(() => {
+    if (!currentStep || currentStep.id !== "ai-moment") {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      advance(currentStep.id);
+    }, 3000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [advance, currentStep]);
+
+  if (!currentStep) {
+    return null;
+  }
+
+  const currentIndex = visibleSteps.findIndex(
+    (step) => step.id === currentStep.id,
+  );
+  const stepNumber = currentIndex >= 0 ? currentIndex + 1 : 1;
+  const sliderConfig = getStepById(currentStep.id)?.sliderConfig;
 
   const handleSingleSelect = (optionId: string) => {
     autoAdvanceRef.current = currentStep.id;
@@ -389,10 +421,194 @@ function OnboardingFlow() {
                 </button>
               ))}
             </div>
+
+            <button
+              type="button"
+              onClick={() => advance(currentStep.id)}
+              className="mt-6 inline-flex h-14 w-full items-center justify-center rounded-2xl bg-indigo-600 px-4 text-base font-semibold text-white transition hover:bg-indigo-700"
+            >
+              Passt so — Matches anzeigen
+            </button>
+          </div>
+        ) : null}
+
+        {currentStep.id === "ai-moment" ? (
+          <div className="mt-10 flex flex-col items-center gap-6">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{
+                duration: 1.6,
+                repeat: Number.POSITIVE_INFINITY,
+                ease: "linear",
+              }}
+              className="h-16 w-16 rounded-full border-4 border-indigo-100 border-t-indigo-600"
+            />
+            <div className="w-full space-y-3">
+              {[
+                "Profil wird analysiert …",
+                "Vergleiche mit 8.400 offenen Stellen …",
+                "Berechne deine Top-Matches …",
+              ].map((text, index) => (
+                <motion.p
+                  key={text}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.8, duration: 0.3 }}
+                  className="text-sm font-medium text-slate-600"
+                >
+                  ✓ {text}
+                </motion.p>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {currentStep.id === "result" ? (
+          <div className="mt-6 space-y-4">
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-3xl font-semibold tracking-[-0.04em] text-slate-900"
+            >
+              Wir haben{" "}
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="text-indigo-600"
+              >
+                {totalMatches}
+              </motion.span>{" "}
+              Jobs für dich gefunden
+            </motion.p>
+
+            {mockJobs.slice(0, 1).map((job) => (
+              <motion.div
+                key={job.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-3xl border border-indigo-200 bg-white p-5 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-lg font-semibold text-slate-900">
+                      {job.title}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      {job.company} · {job.location}
+                      {job.remote ? " · Remote möglich" : ""}
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-600">
+                    {job.matchScore}% Match
+                  </span>
+                </div>
+
+                <p className="mt-3 text-sm font-medium text-slate-700">
+                  {new Intl.NumberFormat("de-DE").format(job.salaryMin)} € –{" "}
+                  {new Intl.NumberFormat("de-DE").format(job.salaryMax)} €
+                </p>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {job.roleTags.slice(0, 2).map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                  {job.remote ? (
+                    <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600">
+                      Remote
+                    </span>
+                  ) : null}
+                </div>
+              </motion.div>
+            ))}
+
+            <div className="relative">
+              <div className="space-y-3 blur-sm">
+                {mockJobs.slice(1, 3).map((job) => (
+                  <div
+                    key={job.id}
+                    className="rounded-3xl border border-slate-200 bg-white p-5"
+                  >
+                    <p className="text-lg font-semibold text-slate-900">
+                      {job.title}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      {job.company} · {job.location}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center rounded-3xl bg-white/50">
+                <span className="rounded-full bg-slate-900/90 px-4 py-2 text-sm font-medium text-white">
+                  +{remainingMatches} weitere Matches
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => advance(currentStep.id)}
+              className="mt-4 inline-flex h-14 w-full items-center justify-center rounded-2xl bg-indigo-600 px-4 text-base font-semibold text-white transition hover:bg-indigo-700"
+            >
+              Alle Matches freischalten
+            </button>
+          </div>
+        ) : null}
+
+        {currentStep.id === "signup" ? (
+          <div className="mt-8 space-y-4">
+            <p className="text-sm text-slate-500">
+              Sichere deine {totalMatches} Matches, damit sie nicht verloren
+              gehen und du bei neuen passenden Jobs benachrichtigt wirst.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => advance(currentStep.id)}
+              className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-base font-semibold text-slate-800 transition hover:bg-slate-50"
+            >
+              Weiter mit Google
+            </button>
+
+            <button
+              type="button"
+              onClick={() => advance(currentStep.id)}
+              className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-base font-semibold text-slate-800 transition hover:bg-slate-50"
+            >
+              Weiter mit Apple
+            </button>
+
+            <div className="flex items-center gap-3 py-2">
+              <div className="h-px flex-1 bg-slate-200" />
+              <span className="text-xs text-slate-400">oder</span>
+              <div className="h-px flex-1 bg-slate-200" />
+            </div>
+
+            <input
+              type="email"
+              placeholder="E-Mail-Adresse"
+              className="h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+            />
+
+            <button
+              type="button"
+              onClick={() => advance(currentStep.id)}
+              className="inline-flex h-14 w-full items-center justify-center rounded-2xl bg-indigo-600 px-4 text-base font-semibold text-white transition hover:bg-indigo-700"
+            >
+              Account erstellen
+            </button>
           </div>
         ) : null}
 
         {currentStep.id !== "summary" &&
+        currentStep.id !== "ai-moment" &&
+        currentStep.id !== "result" &&
+        currentStep.id !== "signup" &&
         currentStep.kind === "single-select" ? (
           <div className="mt-8 space-y-3">
             {stepOptions.map((option) => (
