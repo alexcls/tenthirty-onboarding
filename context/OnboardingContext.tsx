@@ -24,25 +24,80 @@ function onboardingReducer(
 ): OnboardingState {
   switch (action.type) {
     case "SELECT_OPTION": {
-      const nextAnswers = {
-        ...state.answers,
-        [action.stepId]: action.optionId,
+      return {
+        ...state,
+        answers: {
+          ...state.answers,
+          [action.stepId]: action.optionId,
+        },
       };
+    }
 
+    case "TOGGLE_OPTION": {
+      const currentValue = state.answers[action.stepId];
+      const currentValues = Array.isArray(currentValue) ? currentValue : [];
+
+      const nextValues = currentValues.includes(action.optionId)
+        ? currentValues.filter((value) => value !== action.optionId)
+        : [...currentValues, action.optionId];
+
+      return {
+        ...state,
+        answers: {
+          ...state.answers,
+          [action.stepId]: nextValues,
+        },
+      };
+    }
+
+    case "SET_TEXT": {
+      return {
+        ...state,
+        answers: {
+          ...state.answers,
+          [action.stepId]: action.value,
+        },
+      };
+    }
+
+    case "SET_BOOLEAN": {
+      return {
+        ...state,
+        answers: {
+          ...state.answers,
+          [action.stepId]: action.value,
+        },
+      };
+    }
+
+    case "SET_SLIDER": {
+      return {
+        ...state,
+        answers: {
+          ...state.answers,
+          [action.stepId]: action.value,
+        },
+      };
+    }
+
+    case "ADVANCE": {
       const selectedIndustry =
-        typeof nextAnswers.industry === "string"
-          ? nextAnswers.industry
+        typeof state.answers.industry === "string"
+          ? state.answers.industry
           : undefined;
 
       const visibleSteps = getVisibleSteps(selectedIndustry);
       const currentIndex = visibleSteps.findIndex(
         (step) => step.id === action.stepId,
       );
-      const nextStepId = visibleSteps[currentIndex + 1]?.id ?? action.stepId;
+      const nextStepId = visibleSteps[currentIndex + 1]?.id;
+
+      if (!nextStepId) {
+        return state;
+      }
 
       return {
         ...state,
-        answers: nextAnswers,
         currentStepId: nextStepId,
         history: [...state.history, action.stepId],
         isTechPath: selectedIndustry === "tech-software",
@@ -79,6 +134,11 @@ type OnboardingContextValue = {
   state: OnboardingState;
   visibleSteps: ReturnType<typeof getVisibleSteps>;
   selectOption: (stepId: string, optionId: string) => void;
+  toggleOption: (stepId: string, optionId: string) => void;
+  setText: (stepId: string, value: string) => void;
+  setBoolean: (stepId: string, value: boolean) => void;
+  setSlider: (stepId: string, value: number) => void;
+  advance: (stepId: string) => void;
   goBack: () => void;
   goToStep: (stepId: string) => void;
 };
@@ -106,6 +166,21 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       visibleSteps,
       selectOption: (stepId: string, optionId: string) => {
         dispatch({ type: "SELECT_OPTION", stepId, optionId });
+      },
+      toggleOption: (stepId: string, optionId: string) => {
+        dispatch({ type: "TOGGLE_OPTION", stepId, optionId });
+      },
+      setText: (stepId: string, value: string) => {
+        dispatch({ type: "SET_TEXT", stepId, value });
+      },
+      setBoolean: (stepId: string, value: boolean) => {
+        dispatch({ type: "SET_BOOLEAN", stepId, value });
+      },
+      setSlider: (stepId: string, value: number) => {
+        dispatch({ type: "SET_SLIDER", stepId, value });
+      },
+      advance: (stepId: string) => {
+        dispatch({ type: "ADVANCE", stepId });
       },
       goBack: () => {
         dispatch({ type: "GO_BACK" });

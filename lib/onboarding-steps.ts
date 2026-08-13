@@ -1,5 +1,55 @@
 import type { OnboardingStep } from "@/types/onboarding";
 
+const frontendTechStack = [
+  { id: "react", label: "React" },
+  { id: "vue", label: "Vue" },
+  { id: "angular", label: "Angular" },
+  { id: "typescript", label: "TypeScript" },
+  { id: "nextjs", label: "Next.js" },
+];
+
+const backendTechStack = [
+  { id: "node", label: "Node" },
+  { id: "java", label: "Java" },
+  { id: "python", label: "Python" },
+  { id: "go", label: "Go" },
+  { id: "dotnet", label: "C# / .NET" },
+];
+
+const mobileTechStack = [
+  { id: "react-native", label: "React Native" },
+  { id: "flutter", label: "Flutter" },
+  { id: "swift", label: "Swift" },
+  { id: "kotlin", label: "Kotlin" },
+];
+
+const dataTechStack = [
+  { id: "python", label: "Python" },
+  { id: "pandas", label: "Pandas" },
+  { id: "pytorch", label: "PyTorch" },
+  { id: "sql", label: "SQL" },
+];
+
+const devOpsTechStack = [
+  { id: "aws", label: "AWS" },
+  { id: "docker", label: "Docker" },
+  { id: "kubernetes", label: "Kubernetes" },
+  { id: "terraform", label: "Terraform" },
+];
+
+const citySuggestions = [
+  "Berlin",
+  "München",
+  "Hamburg",
+  "Köln",
+  "Frankfurt am Main",
+  "Stuttgart",
+  "Leipzig",
+  "Düsseldorf",
+  "Hannover",
+  "Bremen",
+];
+
 export const onboardingSteps: OnboardingStep[] = [
   {
     id: "industry",
@@ -82,14 +132,15 @@ export const onboardingSteps: OnboardingStep[] = [
     title: "Womit arbeitest du am liebsten?",
     description: "Wähle bis zu 5 Technologien.",
     kind: "multi-select",
-    options: [
-      { id: "react", label: "React" },
-      { id: "vue", label: "Vue" },
-      { id: "angular", label: "Angular" },
-      { id: "typescript", label: "TypeScript" },
-      { id: "nextjs", label: "Next.js" },
-      { id: "node", label: "Node" },
-    ],
+    options: frontendTechStack,
+    optionsByAnswer: {
+      frontend: frontendTechStack,
+      backend: backendTechStack,
+      fullstack: [...frontendTechStack, ...backendTechStack],
+      mobile: mobileTechStack,
+      "data-ml": dataTechStack,
+      devops: devOpsTechStack,
+    },
   },
   {
     id: "location",
@@ -97,6 +148,7 @@ export const onboardingSteps: OnboardingStep[] = [
     title: "Wo möchtest du arbeiten?",
     description: "Stadt, Remote oder beides.",
     kind: "text",
+    suggestions: citySuggestions,
     options: [
       { id: "munich", label: "München" },
       { id: "berlin", label: "Berlin" },
@@ -109,6 +161,12 @@ export const onboardingSteps: OnboardingStep[] = [
     number: 8,
     title: "Ab welchem Gehalt wird ein Wechsel für dich interessant?",
     kind: "slider",
+    sliderConfig: {
+      min: 30000,
+      max: 200000,
+      step: 5000,
+      defaultValue: 65000,
+    },
     options: [{ id: "salary-threshold", label: "Mindestgehalt" }],
   },
   {
@@ -124,15 +182,34 @@ export const onboardingSteps: OnboardingStep[] = [
 export const firstStepId = onboardingSteps[0].id;
 
 export function getVisibleSteps(selectedIndustry?: string): OnboardingStep[] {
+  const visibleSteps = onboardingSteps.filter((step) => step.id !== "summary");
+
   if (selectedIndustry === "tech-software") {
-    return onboardingSteps;
+    return visibleSteps;
   }
 
-  return onboardingSteps.filter(
+  return visibleSteps.filter(
     (step) => !["role", "tech-stack"].includes(step.id),
   );
 }
 
 export function getStepById(stepId: string): OnboardingStep | undefined {
   return onboardingSteps.find((step) => step.id === stepId);
+}
+
+export function getStepOptions(
+  stepId: string,
+  answers: Record<string, string | string[] | number | boolean | undefined>,
+) {
+  const step = getStepById(stepId);
+
+  if (!step) {
+    return [];
+  }
+
+  if (step.optionsByAnswer && typeof answers.role === "string") {
+    return step.optionsByAnswer[answers.role] ?? step.options ?? [];
+  }
+
+  return step.options ?? [];
 }

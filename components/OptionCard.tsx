@@ -7,20 +7,23 @@ import type { OptionCardOption } from "@/types/onboarding";
 export function OptionCard({
   option,
   selected = false,
+  disabled = false,
   onSelect,
 }: {
   option: OptionCardOption;
   selected?: boolean;
+  disabled?: boolean;
   onSelect: () => void;
 }) {
   return (
     <motion.button
       type="button"
       onClick={onSelect}
+      disabled={disabled}
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.15 }}
       className={[
-        "w-full rounded-2xl border p-4 text-left transition-all duration-150",
+        "w-full rounded-2xl border p-4 text-left transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-60",
         selected
           ? "border-indigo-600 bg-indigo-50 shadow-[0_8px_20px_rgba(79,70,229,0.12)]"
           : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50",

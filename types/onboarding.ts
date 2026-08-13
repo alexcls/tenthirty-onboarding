@@ -18,6 +18,14 @@ export type OnboardingStep = {
   description?: string;
   kind: OnboardingStepKind;
   options?: OptionCardOption[];
+  optionsByAnswer?: Record<string, OptionCardOption[]>;
+  suggestions?: string[];
+  sliderConfig?: {
+    min: number;
+    max: number;
+    step: number;
+    defaultValue?: number;
+  };
   branch?: {
     followIf?: string;
     nextStepId?: string;
@@ -39,5 +47,10 @@ export type OnboardingState = {
 
 export type OnboardingAction =
   | { type: "SELECT_OPTION"; stepId: string; optionId: string }
+  | { type: "TOGGLE_OPTION"; stepId: string; optionId: string }
+  | { type: "SET_TEXT"; stepId: string; value: string }
+  | { type: "SET_BOOLEAN"; stepId: string; value: boolean }
+  | { type: "SET_SLIDER"; stepId: string; value: number }
+  | { type: "ADVANCE"; stepId: string }
   | { type: "GO_BACK" }
   | { type: "GO_TO_STEP"; stepId: string };
