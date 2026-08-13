@@ -6,7 +6,76 @@ import { motion } from "framer-motion";
 import { OnboardingLayout } from "@/components/OnboardingLayout";
 import { OptionCard } from "@/components/OptionCard";
 import { OnboardingProvider, useOnboarding } from "@/context/OnboardingContext";
-import { getStepById, getStepOptions } from "@/lib/onboarding-steps";
+import {
+  firstStepId,
+  getStepById,
+  getStepOptions,
+  heroStepId,
+} from "@/lib/onboarding-steps";
+import type { OnboardingStep } from "@/types/onboarding";
+
+function HeroScreen({ onStart }: { onStart: () => void }) {
+  return (
+    <section className="mx-auto flex min-h-screen w-full max-w-[420px] flex-col justify-between px-5 py-8">
+      <div className="pt-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">
+          TenThirty
+        </p>
+        <h1 className="mt-4 text-4xl font-semibold leading-tight tracking-[-0.04em] text-slate-900">
+          Finde den Job, der wirklich zu dir passt
+        </h1>
+        <p className="mt-4 text-base leading-7 text-slate-600">
+          Unser KI-Onboarding zeigt dir in weniger als einer Minute passende
+          Jobs — ohne Lebenslauf und ohne lange Formulare.
+        </p>
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0.3, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 1, ease: "easeOut" }}
+        className="relative my-6 h-44 overflow-hidden rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-emerald-50"
+      >
+        <motion.div
+          animate={{ x: [0, 8, 0], y: [0, -6, 0] }}
+          transition={{
+            duration: 4,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: "easeInOut",
+          }}
+          className="absolute left-6 top-8 h-20 w-20 rounded-full bg-indigo-200/60 blur-[2px]"
+        />
+        <motion.div
+          animate={{ x: [0, -10, 0], y: [0, 6, 0] }}
+          transition={{
+            duration: 4.6,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: "easeInOut",
+          }}
+          className="absolute bottom-6 right-8 h-24 w-24 rounded-full bg-emerald-200/60 blur-[2px]"
+        />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="rounded-2xl border border-white/70 bg-white/80 px-4 py-3 text-sm font-medium text-slate-700 shadow-sm backdrop-blur-sm">
+            KI-Matching wird vorbereitet …
+          </div>
+        </div>
+      </motion.div>
+
+      <div className="pb-2">
+        <button
+          type="button"
+          onClick={onStart}
+          className="inline-flex h-14 w-full items-center justify-center rounded-2xl bg-indigo-600 px-4 text-base font-semibold text-white transition hover:bg-indigo-700"
+        >
+          Jetzt starten
+        </button>
+        <p className="mt-3 text-center text-sm text-slate-500">
+          Ca. 60 Sekunden · 8 Fragen · Kein Lebenslauf nötig
+        </p>
+      </div>
+    </section>
+  );
+}
 
 function TextQuestion({
   value,
@@ -161,6 +230,45 @@ function SalaryQuestion({
   );
 }
 
+function formatAnswerLabel(
+  step: OnboardingStep,
+  answers: Record<string, string | string[] | number | boolean | undefined>,
+) {
+  const answer = answers[step.id];
+
+  if (step.kind === "single-select" && typeof answer === "string") {
+    const option = getStepOptions(step.id, answers).find(
+      (item) => item.id === answer,
+    );
+    return option?.label ?? answer;
+  }
+
+  if (step.kind === "multi-select" && Array.isArray(answer)) {
+    const labels = answer
+      .map(
+        (value) =>
+          getStepOptions(step.id, answers).find((item) => item.id === value)
+            ?.label,
+      )
+      .filter((value): value is string => Boolean(value));
+    return labels.join(" · ");
+  }
+
+  if (step.kind === "text" && typeof answer === "string") {
+    const remote = answers.locationRemote;
+    if (typeof remote === "boolean") {
+      return `${answer} · ${remote ? "Remote OK" : "Nur vor Ort"}`;
+    }
+    return answer;
+  }
+
+  if (step.kind === "slider" && typeof answer === "number") {
+    return `ab ${new Intl.NumberFormat("de-DE").format(answer)} €`;
+  }
+
+  return "";
+}
+
 function OnboardingFlow() {
   const {
     state,
@@ -172,8 +280,10 @@ function OnboardingFlow() {
     setSlider,
     advance,
     goBack,
+    goToStep,
   } = useOnboarding();
   const autoAdvanceRef = useRef<string | null>(null);
+  const isHeroStep = state.currentStepId === heroStepId;
 
   const currentStep =
     visibleSteps.find((step) => step.id === state.currentStepId) ??
@@ -194,9 +304,21 @@ function OnboardingFlow() {
     [currentStep.id, state.answers],
   );
   const sliderConfig = getStepById(currentStep.id)?.sliderConfig;
+  const summaryItems = useMemo(
+    () =>
+      visibleSteps
+        .filter((step) => step.id !== "summary")
+        .map((step) => ({
+          step,
+          label: formatAnswerLabel(step, state.answers),
+        }))
+        .filter((item) => item.label.length > 0),
+    [state.answers, visibleSteps],
+  );
 
   useEffect(() => {
     if (
+      currentStep.id === "summary" ||
       currentStep.kind !== "single-select" ||
       typeof currentAnswer !== "string" ||
       autoAdvanceRef.current !== currentStep.id
@@ -218,6 +340,10 @@ function OnboardingFlow() {
     autoAdvanceRef.current = currentStep.id;
     selectOption(currentStep.id, optionId);
   };
+
+  if (isHeroStep) {
+    return <HeroScreen onStart={() => goToStep(firstStepId)} />;
+  }
 
   return (
     <OnboardingLayout
@@ -246,7 +372,28 @@ function OnboardingFlow() {
           </p>
         ) : null}
 
-        {currentStep.kind === "single-select" ? (
+        {currentStep.id === "summary" ? (
+          <div className="mt-8 space-y-3">
+            <p className="text-sm text-slate-500">
+              Tippe auf einen Chip, um die Antwort zu ändern.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {summaryItems.map(({ step, label }) => (
+                <button
+                  key={step.id}
+                  type="button"
+                  onClick={() => goToStep(step.id)}
+                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {currentStep.id !== "summary" &&
+        currentStep.kind === "single-select" ? (
           <div className="mt-8 space-y-3">
             {stepOptions.map((option) => (
               <OptionCard

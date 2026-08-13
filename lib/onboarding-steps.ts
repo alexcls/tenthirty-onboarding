@@ -50,6 +50,8 @@ const citySuggestions = [
   "Bremen",
 ];
 
+export const heroStepId = "hero";
+
 export const onboardingSteps: OnboardingStep[] = [
   {
     id: "industry",
@@ -182,13 +184,11 @@ export const onboardingSteps: OnboardingStep[] = [
 export const firstStepId = onboardingSteps[0].id;
 
 export function getVisibleSteps(selectedIndustry?: string): OnboardingStep[] {
-  const visibleSteps = onboardingSteps.filter((step) => step.id !== "summary");
-
   if (selectedIndustry === "tech-software") {
-    return visibleSteps;
+    return onboardingSteps;
   }
 
-  return visibleSteps.filter(
+  return onboardingSteps.filter(
     (step) => !["role", "tech-stack"].includes(step.id),
   );
 }

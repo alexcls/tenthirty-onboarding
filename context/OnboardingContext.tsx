@@ -8,11 +8,11 @@ import {
   type ReactNode,
 } from "react";
 
-import { firstStepId, getVisibleSteps } from "@/lib/onboarding-steps";
+import { getVisibleSteps, heroStepId } from "@/lib/onboarding-steps";
 import type { OnboardingAction, OnboardingState } from "@/types/onboarding";
 
 const initialState: OnboardingState = {
-  currentStepId: firstStepId,
+  currentStepId: heroStepId,
   answers: {},
   history: [],
   isTechPath: false,
